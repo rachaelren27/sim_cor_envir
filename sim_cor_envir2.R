@@ -4,12 +4,12 @@ library(ggplot2)
 library(r4ss)
 
 dat <- SS_readdat(
-  file = here("inst", "extdata", "models", "QuillbackOR", "2021_or_quillback.DAT"),
+  file = here("inst", "extdata", "models", "PacificHake", "hake_data.SS"),
   verbose = FALSE
 )
 
 ctl <- SS_readctl(
-  file = here("inst", "extdata", "models", "QuillbackOR", "2021_or_quillback.CTL"),
+  file = here("inst", "extdata", "models", "PacificHake", "hake_control.SS"),
   use_datlist = TRUE,
   datlist = dat,
   verbose = FALSE,
@@ -20,9 +20,9 @@ ctl <- SS_readctl(
 peel <- 15
 term.year <- 2020 - peel
 
-temp <- SSgetoutput(dir = c(here('inst/extdata/models/QuillbackOR'),
+temp <- SSgetoutput(dir = c(here('inst/extdata/models/PacificHake'),
                             here('inst/extdata/models', 
-                                 'qor_retrospectives', 
+                                 'ph_retrospectives', 
                                  paste0('retro-',peel))),
                     forecast = FALSE) %>% 
   SSsummarize()
@@ -46,12 +46,12 @@ create_folder <- function(dir.name) {
   
   # copy ss.exe file
   list.of.files <- list.files(here('inst/extdata/models',
-                                   'qor_retrospectives', 
+                                   'ph_retrospectives', 
                                    paste0('retro-', peel)),
                               pattern = "ss.exe")
   # file.create(here(dir.name, 'ss.exe'))
   file.copy(from = here('inst/extdata/models', 
-                        'qor_retrospectives', 
+                        'ph_retrospectives', 
                         paste0('retro-', peel), 
                         list.of.files),
             to = here(dir.name, list.of.files), overwrite = TRUE)
@@ -98,11 +98,11 @@ sim_fit_retro <- function(seed.ind, corr, corr.ind){
     units = 31
   )
   
-  dirname <- paste0('quillback', peel, '-', corr.ind, '-', seed.ind)
+  dirname <- paste0('hake', peel, '-', corr.ind, '-', seed.ind)
   create_folder(dirname)
   
   copy_SS_inputs(
-    dir.old = here("inst", "extdata", "models", "QuillbackOR"),
+    dir.old = here("inst", "extdata", "models", "PacificHake"),
     dir.new = file.path(here(dirname)),
     overwrite = TRUE
   )
@@ -127,7 +127,7 @@ sim_fit_retro <- function(seed.ind, corr, corr.ind){
   )
   
   # fit retrospective
-  retro(masterdir = here(dirname),
+  retro(dir = here(dirname),
              oldsubdir = '',
              years = -peel,
              extras = "-nohess",
@@ -147,14 +147,14 @@ ind <- 1
 
 
 for (corr in c(0, 0.25, 0.5, 0.75, 0.9)) {
-  # 1:num.seed %>%
-  #   furrr::future_map(sim_fit_retro,
-  #                     corr = corr,
-  #                     corr.ind = ind,
-  #                     .options = furrr::furrr_options(seed = T))
-  
+  1:num.seed %>%
+    furrr::future_map(sim_fit_retro,
+                      corr = corr,
+                      corr.ind = ind,
+                      .options = furrr::furrr_options(seed = T))
+
   for(s in 1:num.seed) {
-    dirs[s] <- here(paste0('quillback', peel, '-', ind, '-', s),
+    dirs[s] <- here(paste0('hake', peel, '-', ind, '-', s),
                     'retrospectives', paste0('retro-', peel))
   }
   
@@ -186,5 +186,5 @@ errs.plot <- ggplot(data = errs, aes(x = corrs, y = env.errs, group = corrs)) +
   geom_boxplot() +
   xlab("correlation") + 
   ylab("absolute error") + 
-  ylim(0,2) +
+  ylim(0,3) +
   geom_hline(yintercept = base.err, color = "red")
